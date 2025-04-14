@@ -18,6 +18,7 @@ const openai = new OpenAI({
 // Middlewares
 app.use(cors());
 app.use(express.json({ limit: '5mb' }));
+app.use(express.static('public')); // Serve static files from the 'public' folder
 
 // Rate limiter (20 requests/hour)
 const imageLimiter = rateLimit({
@@ -30,10 +31,10 @@ const imageLimiter = rateLimit({
 app.use('/generate-image', imageLimiter);
 
 // Load style profiles from external JSON file
-const profilesPath = path.join(process.cwd(), 'styleProfiles.json');
+const profilesPath = path.join(process.cwd(), 'styleprofiles.json'); // Updated to lowercase
 const styleProfiles = JSON.parse(fs.readFileSync(profilesPath, 'utf-8'));
 
-// Your existing endpoint using the loaded JSON
+// Endpoint to generate images using the loaded JSON
 app.post('/generate-image', async (req, res) => {
   try {
     const { prompt, size = '1024x1024', quality = 'standard' } = req.body;
