@@ -20,9 +20,11 @@ app.use(cors());
 app.use(express.json({ limit: '5mb' })); // Parse JSON bodies
 app.use(express.static('public')); // Serve static files from the 'public' folder
 
-// Ensure all responses are JSON
+// Ensure all responses are JSON (for API routes)
 app.use((req, res, next) => {
-  res.setHeader('Content-Type', 'application/json');
+  if (req.path.startsWith('/generate-image') || req.path.startsWith('/health')) {
+    res.setHeader('Content-Type', 'application/json');
+  }
   next();
 });
 
@@ -35,11 +37,6 @@ const imageLimiter = rateLimit({
 });
 
 app.use('/generate-image', imageLimiter);
-
-// Add root route to redirect to landingpage.html (optional, if not using index.html)
-app.get('/', (req, res) => {
-  res.redirect('/landingpage.html');
-});
 
 // Load style profiles from external JSON file
 let styleProfiles;
