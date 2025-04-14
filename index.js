@@ -31,7 +31,7 @@ const imageLimiter = rateLimit({
 app.use('/generate-image', imageLimiter);
 
 // Load style profiles from external JSON file
-const profilesPath = path.join(process.cwd(), 'styleprofiles.json'); // Updated to lowercase
+const profilesPath = path.join(process.cwd(), 'styleprofiles.json');
 const styleProfiles = JSON.parse(fs.readFileSync(profilesPath, 'utf-8'));
 
 // Endpoint to generate images using the loaded JSON
