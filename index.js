@@ -17,8 +17,14 @@ const openai = new OpenAI({
 
 // Middlewares
 app.use(cors());
-app.use(express.json({ limit: '5mb' }));
+app.use(express.json({ limit: '5mb' })); // Parse JSON bodies
 app.use(express.static('public')); // Serve static files from the 'public' folder
+
+// Ensure all responses are JSON
+app.use((req, res, next) => {
+  res.setHeader('Content-Type', 'application/json');
+  next();
+});
 
 // Rate limiter (20 requests/hour)
 const imageLimiter = rateLimit({
@@ -30,17 +36,34 @@ const imageLimiter = rateLimit({
 
 app.use('/generate-image', imageLimiter);
 
+// Add root route to redirect to landingpage.html (optional, if not using index.html)
+app.get('/', (req, res) => {
+  res.redirect('/landingpage.html');
+});
+
 // Load style profiles from external JSON file
-const profilesPath = path.join(process.cwd(), 'styleprofiles.json');
-const styleProfiles = JSON.parse(fs.readFileSync(profilesPath, 'utf-8'));
+let styleProfiles;
+try {
+  const profilesPath = path.join(process.cwd(), 'styles.json');
+  const fileContent = fs.readFileSync(profilesPath, 'utf-8');
+  console.log('styles.json content:', fileContent); // Debug log
+  styleProfiles = JSON.parse(fileContent);
+} catch (error) {
+  console.error('Failed to load styles.json:', error.message);
+  styleProfiles = { style1: { name: 'Default', description: 'Default style', designDirectives: {}, visualCharacteristics: {} } }; // Fallback
+}
 
 // Endpoint to generate images using the loaded JSON
 app.post('/generate-image', async (req, res) => {
   try {
     const { prompt, size = '1024x1024', quality = 'standard' } = req.body;
 
-    if (!prompt) return res.status(400).json({ error: 'Image description required' });
-    if (prompt.length > 1000) return res.status(400).json({ error: 'Prompt too long (max 1000 chars)' });
+    if (!prompt) {
+      return res.status(400).json({ error: 'Image description required' });
+    }
+    if (prompt.length > 1000) {
+      return res.status(400).json({ error: 'Prompt too long (max 1000 chars)' });
+    }
 
     // Select the desired style profile (hard-coded "style1" for now)
     const style = styleProfiles.style1;
@@ -62,7 +85,7 @@ app.post('/generate-image', async (req, res) => {
       style: "vivid"
     });
 
-    res.json({
+    res.status(200).json({
       image_url: response.data[0].url,
       revised_prompt: response.data[0].revised_prompt,
       size: size,
@@ -71,6 +94,9 @@ app.post('/generate-image', async (req, res) => {
     
   } catch (error) {
     console.error('DALL-E Error:', error);
+    if (error instanceof SyntaxError && error.message.includes('JSON')) {
+      return res.status(400).json({ error: 'Invalid JSON in request body' });
+    }
     const errorMessage = error.message.includes('content policy')
       ? 'Prompt rejected: violates content policy'
       : error.message.includes('billing')
@@ -85,7 +111,7 @@ app.post('/generate-image', async (req, res) => {
 });
 
 app.get('/health', (req, res) => {
-  res.json({
+  res.status(200).json({
     status: 'ok',
     service: 'DALL-E Image Generator',
     limits: '20 requests/hour'
