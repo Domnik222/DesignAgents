@@ -18,7 +18,11 @@ const openai = new OpenAI({
 // Middlewares
 app.use(cors());
 app.use(express.json({ limit: '5mb' })); // Parse JSON bodies
-app.use(express.static(path.join(process.cwd(), '../public'))); // Serve static files from the 'public' folder in root
+
+// Debug the public folder path
+const publicPath = path.join(process.cwd(), '../public');
+console.log('Public folder path:', publicPath);
+app.use(express.static(publicPath)); // Serve static files from the 'public' folder in root
 
 // Ensure all responses are JSON (for API routes)
 app.use((req, res, next) => {
@@ -113,11 +117,6 @@ app.get('/health', (req, res) => {
     service: 'DALL-E Image Generator',
     limits: '20 requests/hour'
   });
-});
-
-// Fallback for root URL if index.html is missing
-app.get('/', (req, res) => {
-  res.send('Welcome to the AI Agents Website! Visit /index.html for the landing page.');
 });
 
 const PORT = process.env.PORT || 3001;
