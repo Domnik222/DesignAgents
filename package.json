@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "scripts": {
     "start": "node -r dotenv/config src/index.js",
-    "build": "echo 'No build required'", // Add this line
+    "build": "echo 'No build required'",
     "test": "echo 'No tests configured'"
   },
   "dependencies": {
