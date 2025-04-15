@@ -1,20 +1,23 @@
-// src/index.js
-
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { OpenAI } from 'openai';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
-// Load environment variables from .env file
+// Load environment variables
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3001;
 
+// Determine __dirname in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 // Define the project root and file paths
-const projectRoot = process.cwd();
+const projectRoot = process.cwd(); // or use __dirname if your project root is here
 const publicFolderPath = path.join(projectRoot, 'public');
 const stylesFilePath = path.join(projectRoot, 'styles.json');
 
@@ -30,7 +33,7 @@ if (!fs.existsSync(publicFolderPath)) {
   console.log('Public folder exists: true');
 }
 
-// Attempt to load styles.json (retain original behavior)
+// Attempt to load styles.json
 console.log('=== Loading styles.json ===');
 console.log(`Checking styles.json at: ${stylesFilePath}`);
 if (fs.existsSync(stylesFilePath)) {
@@ -45,10 +48,10 @@ if (fs.existsSync(stylesFilePath)) {
 } else {
   console.error('!!! ERROR LOADING STYLES !!!');
   console.error('styles.json not found in project root');
-  // No changes to behavior—continue running without it.
+  // No changes—continue running without it.
 }
 
-// Initialize OpenAI with your API key
+// Initialize OpenAI
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -57,7 +60,16 @@ const openai = new OpenAI({
 app.use(cors());
 app.use(express.json());
 
-// Define basic routes for health and public testing
+// Serve static files from the public directory
+app.use(express.static(publicFolderPath));
+
+// Add a route for the root path '/' to serve your index.html from public folder
+app.get('/', (req, res) => {
+  // Assumes you have index.html in your public folder
+  res.sendFile(path.join(publicFolderPath, 'index.html'));
+});
+
+// Define other routes for health and testing
 app.get('/health', (req, res) => {
   res.send("Health OK");
 });
@@ -76,14 +88,12 @@ app.post('/generate', async (req, res) => {
   }
 
   try {
-    // Call the DALL·E image generation endpoint
     const imageResponse = await openai.createImage({
       prompt: prompt,
       n: 1,               // Number of images to generate
       size: '1024x1024'   // Image size (adjust as needed)
     });
 
-    // Extract the generated image URL from response
     const imageUrl = imageResponse.data.data[0].url;
     console.log("Generated Image URL:", imageUrl);
 
