@@ -97,4 +97,6 @@ app.post('/generate', async (req, res) => {
 // Start the server
 app.listen(port, () => {
   console.log(`🖼️ Image server running on port ${port}`);
-  console.log
+  console.log(`• Health check: http://localhost:${port}/health`);
+  console.log(`• Public test:  http://localhost:${port}/test-public`);
+});
