@@ -1,138 +1,60 @@
-<<<<<<< HEAD
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>AI Image Generator</title>
-  <style>
-    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-    #preview { margin-top: 20px; max-width: 100%; }
-    .loading { filter: blur(5px); }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vector Logos</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 600px; margin: auto; }
+        label { display: block; margin-bottom: 5px; }
+        input[type="text"] { width: 100%; padding: 8px; margin-bottom: 10px; }
+        button { padding: 10px 20px; background-color: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        #generated-image { margin-top: 20px; }
+        #error { color: red; margin-top: 10px; }
+    </style>
 </head>
 <body>
-  <h1>Generate AI Art</h1>
-  
-  <form id="imageForm">
-    <textarea 
-      id="prompt" 
-      placeholder="Describe the image you want to generate..." 
-      rows="4"
-      style="width: 100%"
-    ></textarea>
-    <br>
-    <button type="submit">Generate Image</button>
-  </form>
+    <div class="container">
+        <h1>Vector Logos</h1>
+        <form id="generate-form">
+            <label for="prompt">Enter a description (e.g., Vector logo of a cat):</label>
+            <input type="text" id="prompt" name="prompt" value="Vector logo of a cat" required>
+            <button type="submit">Generate Image</button>
+        </form>
+        <div id="generated-image"></div>
+        <div id="error"></div>
+    </div>
 
-  <div id="result">
-    <img id="preview" src="" alt="Generated image">
-    <p id="status"></p>
-  </div>
+    <script>
+        const formVector = document.getElementById('generate-form');
+        const generatedImageDiv = document.getElementById('generated-image');
+        const errorDiv = document.getElementById('error');
 
-  <script>
-    const form = document.getElementById('imageForm');
-    const preview = document.getElementById('preview');
-    const status = document.getElementById('status');
+        formVector.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const prompt = document.getElementById('prompt').value;
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      preview.classList.add('loading');
-      status.textContent = 'Generating...';
+            try {
+                const response = await fetch('https://designagents.onrender.com/generate-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt })
+                });
 
-      try {
-        const response = await fetch('http://localhost:3001/generate-image', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            prompt: document.getElementById('prompt').value
-          })
+                if (!response.ok) {
+                    throw new Error('Failed to generate image');
+                }
+
+                const data = await response.json();
+                generatedImageDiv.innerHTML = `<img src="${data.image_url}" alt="Generated Image" style="max-width: 100%;">`;
+                errorDiv.textContent = '';
+            } catch (error) {
+                errorDiv.textContent = `Connection failed - ${error.message}`;
+                generatedImageDiv.innerHTML = '';
+            }
         });
-
-        const data = await response.json();
-        
-        if (response.ok) {
-          preview.src = data.image_url;
-          status.textContent = `Revised prompt: ${data.revised_prompt}`;
-        } else {
-          status.textContent = `Error: ${data.error}`;
-        }
-        
-      } catch (err) {
-        status.textContent = 'Connection failed - is the server running?';
-      } finally {
-        preview.classList.remove('loading');
-      }
-    });
-  </script>
+    </script>
 </body>
-=======
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>AI Image Generator</title>
-  <style>
-    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-    #preview { margin-top: 20px; max-width: 100%; }
-    .loading { filter: blur(5px); }
-  </style>
-</head>
-<body>
-  <h1>Generate AI Art</h1>
-  
-  <form id="imageForm">
-    <textarea 
-      id="prompt" 
-      placeholder="Describe the image you want to generate..." 
-      rows="4"
-      style="width: 100%"
-    ></textarea>
-    <br>
-    <button type="submit">Generate Image</button>
-  </form>
-
-  <div id="result">
-    <img id="preview" src="" alt="Generated image">
-    <p id="status"></p>
-  </div>
-
-  <script>
-    const form = document.getElementById('imageForm');
-    const preview = document.getElementById('preview');
-    const status = document.getElementById('status');
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      preview.classList.add('loading');
-      status.textContent = 'Generating...';
-
-      try {
-        const response = await fetch('http://localhost:3001/generate-image', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            prompt: document.getElementById('prompt').value
-          })
-        });
-
-        const data = await response.json();
-        
-        if (response.ok) {
-          preview.src = data.image_url;
-          status.textContent = `Revised prompt: ${data.revised_prompt}`;
-        } else {
-          status.textContent = `Error: ${data.error}`;
-        }
-        
-      } catch (err) {
-        status.textContent = 'Connection failed - is the server running?';
-      } finally {
-        preview.classList.remove('loading');
-      }
-    });
-  </script>
-</body>
->>>>>>> 447a943cb781db12b17d499f0504de7d9cfda06d
 </html>
