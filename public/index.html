@@ -1,92 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Design Agents</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #0f0f0f;
-      color: #ffffff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-    }
-    h1 {
-      font-size: 3rem;
-      margin-bottom: 40px;
-      text-align: center;
-    }
-    .agent-button {
-      background-color: #ffffff;
-      color: #000000;
-      border: none;
-      padding: 16px 32px;
-      font-size: 1.25rem;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-    .agent-button:hover {
-      background-color: #dddddd;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate AI Art</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 600px; margin: auto; }
+        label { display: block; margin-bottom: 5px; }
+        input[type="text"] { width: 100%; padding: 8px; margin-bottom: 10px; }
+        button { padding: 10px 20px; background-color: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        #generated-image { margin-top: 20px; }
+        #error { color: red; margin-top: 10px; }
+    </style>
 </head>
 <body>
-  <h1>Explore Powerful Design Agents</h1>
-  <a href="vector-logos.html">
-    <button class="agent-button">Geometric Logo Agent</button>
-  </a>
+    <div class="container">
+        <h1>Generate AI Art</h1>
+        <form id="generate-form">
+            <label for="prompt">Enter a description (e.g., Logo of a dog):</label>
+            <input type="text" id="prompt" name="prompt" value="Logo of a dog" required>
+            <button type="submit">Generate Image</button>
+        </form>
+        <div id="generated-image"></div>
+        <div id="error"></div>
+    </div>
+
+    <script>
+        const formIndex = document.getElementById('generate-form');
+        const generatedImageDiv = document.getElementById('generated-image');
+        const errorDiv = document.getElementById('error');
+
+        formIndex.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const prompt = document.getElementById('prompt').value;
+
+            try {
+                const response = await fetch('https://designagents.onrender.com/generate-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to generate image');
+                }
+
+                const data = await response.json();
+                generatedImageDiv.innerHTML = `<img src="${data.image_url}" alt="Generated Image" style="max-width: 100%;">`;
+                errorDiv.textContent = '';
+            } catch (error) {
+                errorDiv.textContent = `Connection failed - ${error.message}`;
+                generatedImageDiv.innerHTML = '';
+            }
+        });
+    </script>
 </body>
 </html>
-=======
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Design Agents</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #0f0f0f;
-      color: #ffffff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-    }
-    h1 {
-      font-size: 3rem;
-      margin-bottom: 40px;
-      text-align: center;
-    }
-    .agent-button {
-      background-color: #ffffff;
-      color: #000000;
-      border: none;
-      padding: 16px 32px;
-      font-size: 1.25rem;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-    .agent-button:hover {
-      background-color: #dddddd;
-    }
-  </style>
-</head>
-<body>
-  <h1>Explore Powerful Design Agents</h1>
-  <a href="vector-logos.html">
-    <button class="agent-button">Geometric Logo Agent</button>
-  </a>
-</body>
-</html>
->>>>>>> 447a943cb781db12b17d499f0504de7d9cfda06d
