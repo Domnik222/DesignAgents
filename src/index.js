@@ -18,7 +18,7 @@ const openai = new OpenAI({
 // Middlewares
 app.use(cors());
 app.use(express.json({ limit: '5mb' })); // Parse JSON bodies
-app.use(express.static('public')); // Serve static files from the 'public' folder
+app.use(express.static(path.join(process.cwd(), '../public'))); // Serve static files from the 'public' folder in root
 
 // Ensure all responses are JSON (for API routes)
 app.use((req, res, next) => {
@@ -41,7 +41,7 @@ app.use('/generate-image', imageLimiter);
 // Load style profiles from external JSON file
 let styleProfiles;
 try {
-  const profilesPath = path.join(process.cwd(), 'styles.json');
+  const profilesPath = path.join(process.cwd(), '../styles.json'); // Look for styles.json in root
   const fileContent = fs.readFileSync(profilesPath, 'utf-8');
   console.log('styles.json content:', fileContent); // Debug log
   styleProfiles = JSON.parse(fileContent);
@@ -113,6 +113,11 @@ app.get('/health', (req, res) => {
     service: 'DALL-E Image Generator',
     limits: '20 requests/hour'
   });
+});
+
+// Fallback for root URL if index.html is missing
+app.get('/', (req, res) => {
+  res.send('Welcome to the AI Agents Website! Visit /index.html for the landing page.');
 });
 
 const PORT = process.env.PORT || 3001;
