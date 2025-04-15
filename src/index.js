@@ -7,57 +7,57 @@ import { OpenAI } from 'openai';
 import fs from 'fs';
 import path from 'path';
 
-// Load environment variables
+// Load environment variables from .env file
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3001;
 
-// Determine project root and file paths
+// Define the project root and file paths
 const projectRoot = process.cwd();
-const stylesPath = path.join(projectRoot, 'styles.json');
-const publicPath = path.join(projectRoot, 'public');
+const publicFolderPath = path.join(projectRoot, 'public');
+const stylesFilePath = path.join(projectRoot, 'styles.json');
 
 console.log('Project root path:', projectRoot);
-console.log('Public folder path:', publicPath);
-console.log('Styles.json path:', stylesPath);
+console.log('Public folder path:', publicFolderPath);
+console.log('styles.json path:', stylesFilePath);
 
 // Ensure the public folder exists
-if (!fs.existsSync(publicPath)) {
+if (!fs.existsSync(publicFolderPath)) {
   console.log('Creating public directory...');
-  fs.mkdirSync(publicPath);
+  fs.mkdirSync(publicFolderPath);
 } else {
   console.log('Public folder exists: true');
 }
 
-// Try to load styles.json; if missing or error, use a default fallback
-let styles = {};
-if (fs.existsSync(stylesPath)) {
-  console.log("=== Loading styles.json ===");
+// Attempt to load styles.json (retain original behavior)
+console.log('=== Loading styles.json ===');
+console.log(`Checking styles.json at: ${stylesFilePath}`);
+if (fs.existsSync(stylesFilePath)) {
+  console.log('File exists: true');
   try {
-    const data = fs.readFileSync(stylesPath, 'utf-8');
-    styles = JSON.parse(data);
-    console.log("Loaded styles:", styles);
+    const stylesData = fs.readFileSync(stylesFilePath, 'utf-8');
+    const styles = JSON.parse(stylesData);
+    console.log('Loaded styles:', styles);
   } catch (error) {
-    console.error("!!! ERROR PARSING styles.json !!!", error);
+    console.error('!!! ERROR PARSING styles.json !!!', error);
   }
 } else {
-  console.error("!!! ERROR LOADING STYLES !!!");
-  console.error("styles.json not found in project root");
-  // Fallback default configuration:
-  styles = { defaultStyle: "minimal", styles: [] };
+  console.error('!!! ERROR LOADING STYLES !!!');
+  console.error('styles.json not found in project root');
+  // No changes to behavior—continue running without it.
 }
 
-// Initialize OpenAI with your API key from .env
+// Initialize OpenAI with your API key
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Middleware
+// Middleware: enable CORS and JSON body parsing
 app.use(cors());
 app.use(express.json());
 
-// Define basic routes
+// Define basic routes for health and public testing
 app.get('/health', (req, res) => {
   res.send("Health OK");
 });
@@ -66,34 +66,35 @@ app.get('/test-public', (req, res) => {
   res.send("Test public endpoint working");
 });
 
-// Main POST endpoint for generating responses
+// Main POST endpoint for generating images using DALL·E
 app.post('/generate', async (req, res) => {
   const { prompt } = req.body;
-  console.log("🟡 Prompt received:", prompt);
+  console.log("Prompt received:", prompt);
 
   if (!prompt) {
     return res.status(400).json({ error: 'Prompt is required' });
   }
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo', // Change this to 'gpt-4' if you have access
-      messages: [
-        { role: 'system', content: 'You are a helpful AI design agent.' },
-        { role: 'user', content: prompt },
-      ],
+    // Call the DALL·E image generation endpoint
+    const imageResponse = await openai.createImage({
+      prompt: prompt,
+      n: 1,               // Number of images to generate
+      size: '1024x1024'   // Image size (adjust as needed)
     });
 
-    const aiResponse = completion.choices[0].message.content;
-    console.log("🟢 AI Response:", aiResponse);
-    res.json({ result: aiResponse });
+    // Extract the generated image URL from response
+    const imageUrl = imageResponse.data.data[0].url;
+    console.log("Generated Image URL:", imageUrl);
+
+    res.json({ result: imageUrl });
   } catch (error) {
-    console.error('❌ OpenAI API Error:', error?.response?.data || error.message || error);
-    res.status(500).json({ error: 'Failed to generate response' });
+    console.error('❌ DALL·E API Error:', error?.response?.data || error.message || error);
+    res.status(500).json({ error: 'Failed to generate image' });
   }
 });
 
+// Start the server
 app.listen(port, () => {
   console.log(`🖼️ Image server running on port ${port}`);
-  console.log(`• Health check: http://localhost:${port}/health`);
-  console.log(`• Public test:  http://localhost:${
+  console.log
