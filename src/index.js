@@ -1,117 +1,99 @@
+// src/index.js
+
 import express from 'express';
 import cors from 'cors';
-import OpenAI from 'openai';
-import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import { OpenAI } from 'openai';
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
-// Configure __dirname for ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
+// Load environment variables
 dotenv.config();
 
 const app = express();
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-  maxRetries: 2,
-  timeout: 20000
-});
+const port = process.env.PORT || 3001;
 
-// Middlewares
-app.use(cors());
-app.use(express.json({ limit: '5mb' }));
+// Determine project root and file paths
+const projectRoot = process.cwd();
+const stylesPath = path.join(projectRoot, 'styles.json');
+const publicPath = path.join(projectRoot, 'public');
 
-// Path configuration
-const rootPath = path.join(__dirname, '../..');
-const publicPath = path.join(rootPath, 'public');
-const stylesPath = path.join(rootPath, 'styles.json');
-
-// Debug paths
-console.log('Project root path:', rootPath);
+console.log('Project root path:', projectRoot);
 console.log('Public folder path:', publicPath);
-console.log('styles.json path:', stylesPath);
+console.log('Styles.json path:', stylesPath);
 
-// Create public directory if missing
+// Ensure the public folder exists
 if (!fs.existsSync(publicPath)) {
   console.log('Creating public directory...');
-  fs.mkdirSync(publicPath, { recursive: true });
+  fs.mkdirSync(publicPath);
+} else {
+  console.log('Public folder exists: true');
 }
 
-// Verify and serve static files
-console.log('Public folder exists:', fs.existsSync(publicPath));
-app.use(express.static(publicPath));
-
-// Load style profiles
-let styleProfiles;
-try {
-  console.log('\n=== Loading styles.json ===');
-  console.log('Checking styles.json at:', stylesPath);
-  console.log('File exists:', fs.existsSync(stylesPath));
-  
-  if (!fs.existsSync(stylesPath)) {
-    throw new Error('styles.json not found in project root');
-  }
-
-  const fileContent = fs.readFileSync(stylesPath, 'utf-8');
-  styleProfiles = JSON.parse(fileContent);
-  console.log('Successfully loaded style profiles:', Object.keys(styleProfiles));
-  
-} catch (error) {
-  console.error('\n!!! ERROR LOADING STYLES !!!');
-  console.error(error.message);
-  styleProfiles = {
-    style1: {
-      name: 'Emergency Default',
-      description: 'Fallback style - check styles.json configuration',
-      designDirectives: {},
-      visualCharacteristics: {}
-    }
-  };
-}
-
-// Rest of your existing endpoints (generate-image, health check, etc.)
-// ... keep the existing endpoints unchanged ...
-
-// Enhanced health check
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'ok',
-    service: 'DALL-E Image Generator',
-    public_folder: {
-      path: publicPath,
-      exists: fs.existsSync(publicPath)
-    },
-    styles: {
-      path: stylesPath,
-      exists: fs.existsSync(stylesPath),
-      loaded_profiles: Object.keys(styleProfiles)
-    }
-  });
-});
-
-// Public folder test endpoint
-app.get('/test-public', (req, res) => {
-  const testFile = path.join(publicPath, 'test.txt');
+// Try to load styles.json; if missing or error, use a default fallback
+let styles = {};
+if (fs.existsSync(stylesPath)) {
+  console.log("=== Loading styles.json ===");
   try {
-    if (!fs.existsSync(testFile)) {
-      fs.writeFileSync(testFile, 'Public folder working correctly!');
-    }
-    res.sendFile(testFile);
+    const data = fs.readFileSync(stylesPath, 'utf-8');
+    styles = JSON.parse(data);
+    console.log("Loaded styles:", styles);
   } catch (error) {
-    res.status(500).json({
-      error: 'Public folder test failed',
-      details: error.message,
-      path: testFile
+    console.error("!!! ERROR PARSING styles.json !!!", error);
+  }
+} else {
+  console.error("!!! ERROR LOADING STYLES !!!");
+  console.error("styles.json not found in project root");
+  // Fallback default configuration:
+  styles = { defaultStyle: "minimal", styles: [] };
+}
+
+// Initialize OpenAI with your API key from .env
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// Define basic routes
+app.get('/health', (req, res) => {
+  res.send("Health OK");
+});
+
+app.get('/test-public', (req, res) => {
+  res.send("Test public endpoint working");
+});
+
+// Main POST endpoint for generating responses
+app.post('/generate', async (req, res) => {
+  const { prompt } = req.body;
+  console.log("🟡 Prompt received:", prompt);
+
+  if (!prompt) {
+    return res.status(400).json({ error: 'Prompt is required' });
+  }
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo', // Change this to 'gpt-4' if you have access
+      messages: [
+        { role: 'system', content: 'You are a helpful AI design agent.' },
+        { role: 'user', content: prompt },
+      ],
     });
+
+    const aiResponse = completion.choices[0].message.content;
+    console.log("🟢 AI Response:", aiResponse);
+    res.json({ result: aiResponse });
+  } catch (error) {
+    console.error('❌ OpenAI API Error:', error?.response?.data || error.message || error);
+    res.status(500).json({ error: 'Failed to generate response' });
   }
 });
 
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`\n🖼️ Image server running on port ${PORT}`);
-  console.log(`• Health check: http://localhost:${PORT}/health`);
-  console.log(`• Public test:  http://localhost:${PORT}/test-public`);
-});
+app.listen(port, () => {
+  console.log(`🖼️ Image server running on port ${port}`);
+  console.log(`• Health check: http://localhost:${port}/health`);
+  console.log(`• Public test:  http://localhost:${
