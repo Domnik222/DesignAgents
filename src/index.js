@@ -46,6 +46,7 @@ app.use('/generate-image', imageLimiter);
 let styleProfiles;
 try {
   const profilesPath = path.join(process.cwd(), '../styles.json'); // Look for styles.json in root
+  console.log('Attempting to load styles.json from:', profilesPath); // Debug log
   const fileContent = fs.readFileSync(profilesPath, 'utf-8');
   console.log('styles.json content:', fileContent); // Debug log
   styleProfiles = JSON.parse(fileContent);
