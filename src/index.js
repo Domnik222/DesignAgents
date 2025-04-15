@@ -20,10 +20,10 @@ app.use(cors());
 app.use(express.json({ limit: '5mb' })); // Parse JSON bodies
 
 // Debug the public folder path
-const publicPath = path.join(process.cwd(), '../public');
+const publicPath = path.join(process.cwd(), 'public'); // Look for public/ in src/
 console.log('Public folder path:', publicPath);
 console.log('Public folder exists:', fs.existsSync(publicPath));
-app.use(express.static(publicPath)); // Serve static files from the 'public' folder in root
+app.use(express.static(publicPath)); // Serve static files from the 'public' folder in src/
 
 // Ensure all responses are JSON (for API routes)
 app.use((req, res, next) => {
@@ -46,7 +46,7 @@ app.use('/generate-image', imageLimiter);
 // Load style profiles from external JSON file
 let styleProfiles;
 try {
-  const profilesPath = path.join(process.cwd(), '../styles.json'); // Look for styles.json in root
+  const profilesPath = path.join(process.cwd(), 'styles.json'); // Look for styles.json in src/
   console.log('Attempting to load styles.json from:', profilesPath);
   console.log('styles.json exists:', fs.existsSync(profilesPath));
   const fileContent = fs.readFileSync(profilesPath, 'utf-8');
