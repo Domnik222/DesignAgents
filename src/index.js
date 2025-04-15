@@ -17,15 +17,22 @@ const openai = new OpenAI({
 
 // Middlewares
 app.use(cors());
-app.use(express.json({ limit: '5mb' })); // Parse JSON bodies
+app.use(express.json({ limit: '5mb' }));
 
-// Debug the public folder path
-const publicPath = path.join(process.cwd(), 'public'); // Look for public/ in src/
+// Corrected public folder path
+const publicPath = path.join(process.cwd(), 'public');
 console.log('Public folder path:', publicPath);
 console.log('Public folder exists:', fs.existsSync(publicPath));
-app.use(express.static(publicPath)); // Serve static files from the 'public' folder in src/
 
-// Ensure all responses are JSON (for API routes)
+// Create public directory if it doesn't exist
+if (!fs.existsSync(publicPath)) {
+  fs.mkdirSync(publicPath);
+  console.log('Created public directory');
+}
+
+app.use(express.static(publicPath));
+
+// Ensure JSON responses for API routes
 app.use((req, res, next) => {
   if (req.path.startsWith('/generate-image') || req.path.startsWith('/health')) {
     res.setHeader('Content-Type', 'application/json');
@@ -43,21 +50,33 @@ const imageLimiter = rateLimit({
 
 app.use('/generate-image', imageLimiter);
 
-// Load style profiles from external JSON file
+// Corrected styles.json path with enhanced error handling
 let styleProfiles;
 try {
-  const profilesPath = path.join(process.cwd(), 'styles.json'); // Look for styles.json in src/
+  const profilesPath = path.join(process.cwd(), 'styles.json');
   console.log('Attempting to load styles.json from:', profilesPath);
   console.log('styles.json exists:', fs.existsSync(profilesPath));
+  
+  if (!fs.existsSync(profilesPath)) {
+    throw new Error('styles.json not found in project root');
+  }
+
   const fileContent = fs.readFileSync(profilesPath, 'utf-8');
-  console.log('styles.json content:', fileContent); // Debug log
   styleProfiles = JSON.parse(fileContent);
+  console.log('Successfully loaded style profiles:', Object.keys(styleProfiles));
 } catch (error) {
   console.error('Failed to load styles.json:', error.message);
-  styleProfiles = { style1: { name: 'Default', description: 'Default style', designDirectives: {}, visualCharacteristics: {} } }; // Fallback
+  styleProfiles = { 
+    style1: {
+      name: 'Default',
+      description: 'Default style',
+      designDirectives: {},
+      visualCharacteristics: {}
+    }
+  };
 }
 
-// Endpoint to generate images using the loaded JSON
+// Image generation endpoint
 app.post('/generate-image', async (req, res) => {
   try {
     const { prompt, size = '1024x1024', quality = 'standard' } = req.body;
@@ -69,7 +88,6 @@ app.post('/generate-image', async (req, res) => {
       return res.status(400).json({ error: 'Prompt too long (max 1000 chars)' });
     }
 
-    // Select the desired style profile (hard-coded "style1" for now)
     const style = styleProfiles.style1;
     const styleGuide = `Style Profile: ${style.name}. Description: ${style.description}. Design Directives: ${Object.entries(style.designDirectives)
       .map(([k, v]) => `${k}: ${v}`)
@@ -98,9 +116,6 @@ app.post('/generate-image', async (req, res) => {
     
   } catch (error) {
     console.error('DALL-E Error:', error);
-    if (error instanceof SyntaxError && error.message.includes('JSON')) {
-      return res.status(400).json({ error: 'Invalid JSON in request body' });
-    }
     const errorMessage = error.message.includes('content policy')
       ? 'Prompt rejected: violates content policy'
       : error.message.includes('billing')
@@ -114,16 +129,29 @@ app.post('/generate-image', async (req, res) => {
   }
 });
 
+// Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'ok',
     service: 'DALL-E Image Generator',
-    limits: '20 requests/hour'
+    limits: '20 requests/hour',
+    stylesLoaded: !!styleProfiles
   });
+});
+
+// Test route for public folder
+app.get('/test-public', (req, res) => {
+  try {
+    res.sendFile(path.join(publicPath, 'test.txt'));
+  } catch (error) {
+    res.status(500).json({ error: 'Public folder test failed', details: error.message });
+  }
 });
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`🖼️ Image server running on port ${PORT}`);
   console.log(`• Endpoint: POST http://localhost:${PORT}/generate-image`);
+  console.log(`• Health check: GET http://localhost:${PORT}/health`);
+  console.log(`• Public folder test: GET http://localhost:${PORT}/test-public`);
 });
